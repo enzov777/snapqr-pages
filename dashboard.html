@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>SnapQR – Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="card">
+    <h1>SnapQR</h1>
+
+    <h2>Crear QR</h2>
+
+    <input type="url" id="url" placeholder="https://ejemplo.com">
+
+    <label>Color del QR</label>
+    <input type="color" id="color" value="#000000">
+
+    <button onclick="crearQR()">Generar QR</button>
+
+    <div id="qrBox" style="display:none">
+      <h3>Tu QR</h3>
+      <img id="qrImg">
+      <br>
+      <a id="download" download="snapqr.png">Descargar PNG</a>
+    </div>
+  </div>
+
+<script src="app.js"></script>
+</body>
+</html>
