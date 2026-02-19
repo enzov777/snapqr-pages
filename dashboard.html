@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>SnapQR Dashboard</title>
+</head>
+<body>
+  <h1>Dashboard SnapQR</h1>
+
+  <input id="slug" placeholder="Código QR (slug)">
+  <button onclick="verStats()">Ver estadísticas</button>
+
+  <pre id="stats"></pre>
+
+  <script>
+    async function verStats() {
+      const slug = document.getElementById("slug").value;
+      const res = await fetch(
+        `https://snapqr-api.enzovillarroelv.workers.dev/api/stats/${slug}`
+      );
+
+      const data = await res.json();
+      document.getElementById("stats").textContent =
+        JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
