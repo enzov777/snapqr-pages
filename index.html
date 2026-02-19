@@ -57,52 +57,111 @@
 <body>
 
   <div class="card">
-    <h1>SnapQR</h1>
-    <p>Crea enlaces dinámicos para tus QR</p>
+  <h1>SnapQR</h1>
+  <p>QR dinámicos, editables y profesionales</p>
 
-    <input id="target" placeholder="Destino (https://...)" />
-    <button onclick="crearQR()">Generar QR</button>
+  <input id="target" placeholder="Destino (https://...)" />
 
-    <div class="result" id="resultado"></div>
+  <label>Color principal</label>
+  <input type="color" id="colorDark" value="#000000">
+
+  <label>Color de fondo</label>
+  <input type="color" id="colorLight" value="#ffffff">
+
+  <label>Logo central</label>
+  <input type="file" id="logoInput" accept="image/*">
+
+  <button onclick="crearQR()">Generar QR</button>
+
+  <div id="qr-preview" style="margin-top:20px; text-align:center;"></div>
+
+  <button id="downloadBtn" style="display:none;" onclick="descargarQR()">Descargar PNG</button>
+
+  <div class="result" id="resultado"></div>
+</div>
+
   </div>
 
-  <script>
-    async function crearQR() {
-      const target = document.getElementById("target").value;
-      const resultado = document.getElementById("resultado");
+<script>
+let qr;
+let currentQR;
 
-      if (!target) {
-        resultado.textContent = "❌ Ingresa un destino";
-        return;
-      }
+async function crearQR() {
+  const target = document.getElementById("target").value;
+  const dark = document.getElementById("colorDark").value;
+  const light = document.getElementById("colorLight").value;
+  const result = document.getElementById("resultado");
+  const preview = document.getElementById("qr-preview");
 
-      resultado.textContent = "Creando...";
+  if (!target) {
+    result.textContent = "❌ Ingresa un destino";
+    return;
+  }
 
-      try {
-        const res = await fetch(
-          "https://snapqr-api.enzovillarroelv.workers.dev/api/links",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ target })
-          }
-        );
+  result.textContent = "Creando enlace...";
 
-        const data = await res.json();
-
-        resultado.innerHTML = `
-          ✅ Enlace creado:<br>
-          <a href="${data.shortUrl}" target="_blank">
-            ${data.shortUrl}
-          </a>
-        `;
-      } catch (e) {
-        resultado.textContent = "❌ Error conectando con la API";
-      }
+  const res = await fetch(
+    "https://snapqr-api.enzovillarroelv.workers.dev/api/links",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target })
     }
-  </script>
+  );
+
+  const data = await res.json();
+
+  preview.innerHTML = "";
+  qr = new QRCode(preview, {
+    text: data.shortUrl,
+    width: 256,
+    height: 256,
+    colorDark: dark,
+    colorLight: light,
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  currentQR = preview.querySelector("canvas");
+
+  result.innerHTML = `
+    ✅ QR creado<br>
+    <a href="${data.shortUrl}" target="_blank">${data.shortUrl}</a>
+  `;
+
+  document.getElementById("downloadBtn").style.display = "block";
+
+  aplicarLogo();
+}
+
+function aplicarLogo() {
+  const input = document.getElementById("logoInput");
+  if (!input.files[0]) return;
+
+  const canvas = currentQR;
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+
+  img.onload = () => {
+    const size = canvas.width * 0.25;
+    const x = (canvas.width - size) / 2;
+    const y = (canvas.height - size) / 2;
+    ctx.drawImage(img, x, y, size, size);
+  };
+
+  img.src = URL.createObjectURL(input.files[0]);
+}
+
+document.getElementById("logoInput").addEventListener("change", aplicarLogo);
+
+function descargarQR() {
+  const link = document.createElement("a");
+  link.download = "snapqr.png";
+  link.href = currentQR.toDataURL("image/png");
+  link.click();
+}
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
 </body>
 </html>
-
