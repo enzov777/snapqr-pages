@@ -24,5 +24,11 @@
         JSON.stringify(data, null, 2);
     }
   </script>
+  <script>
+if (!localStorage.getItem("snapqr_token")) {
+  window.location.href = "/login.html";
+}
+</script>
 </body>
 </html>
+
