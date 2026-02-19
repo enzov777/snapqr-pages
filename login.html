@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>SnapQR Login</title>
+  <style>
+    body {
+      font-family: system-ui;
+      background: #f5f7fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: white;
+      padding: 40px;
+      border-radius: 14px;
+      width: 360px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.1);
+    }
+
+    input, button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+    }
+
+    button {
+      background: #111;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>SnapQR</h2>
+  <p>Acceso al dashboard</p>
+
+  <input type="password" id="password" placeholder="Contraseña">
+  <button onclick="login()">Ingresar</button>
+
+  <p id="msg"></p>
+</div>
+
+<script>
+async function login() {
+  const password = document.getElementById("password").value;
+  const msg = document.getElementById("msg");
+
+  const res = await fetch(
+    "https://snapqr-api.enzovillarroelv.workers.dev/api/login",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password })
+    }
+  );
+
+  if (!res.ok) {
+    msg.textContent = "❌ Contraseña incorrecta";
+    return;
+  }
+
+  const data = await res.json();
+  localStorage.setItem("snapqr_token", data.token);
+
+  window.location.href = "/dashboard.html";
+}
+</script>
+
+</body>
+</html>
