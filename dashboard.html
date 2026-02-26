@@ -106,7 +106,16 @@ data.forEach(q=>{
   `;
 });
 }
-
+async function editar(slug, target){
+  await fetch(`${API}/api/update-link`,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":token
+    },
+    body:JSON.stringify({ slug, target })
+  });
+}
 cargar();
 </script>
 </body>
