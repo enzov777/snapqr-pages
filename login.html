@@ -6,7 +6,7 @@
 <style>
 body{
   font-family:system-ui;
-  background:#f5f7fa;
+  background:#f4f6fb;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -16,7 +16,7 @@ body{
   background:white;
   padding:32px;
   width:360px;
-  border-radius:14px;
+  border-radius:16px;
   box-shadow:0 20px 40px rgba(0,0,0,.1);
 }
 input,button{
@@ -25,37 +25,26 @@ input,button{
   margin-top:12px;
   border-radius:10px;
   border:1px solid #ddd;
-  font-size:15px;
 }
 button{
-  background:#111;
+  background:#0f172a;
   color:white;
   border:none;
-  cursor:pointer;
 }
 .toggle{
   margin-top:14px;
   text-align:center;
-  font-size:14px;
   cursor:pointer;
-  color:#555;
 }
 </style>
 </head>
-
 <body>
 <div class="card">
   <h2 id="title">Login SnapQR</h2>
-
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Contraseña">
-
   <button onclick="submit()">Ingresar</button>
-
-  <div class="toggle" onclick="toggleMode()">
-    ¿No tienes cuenta? Crear una
-  </div>
-
+  <div class="toggle" onclick="toggle()">Crear cuenta</div>
   <p id="msg"></p>
 </div>
 
@@ -63,22 +52,15 @@ button{
 const API = "https://snapqr-api.enzovillarroelv.workers.dev";
 let mode = "login";
 
-function toggleMode(){
-  mode = mode === "login" ? "register" : "login";
+function toggle(){
+  mode = mode==="login"?"register":"login";
   document.getElementById("title").textContent =
-    mode === "login" ? "Login SnapQR" : "Registro SnapQR";
-  document.querySelector("button").textContent =
-    mode === "login" ? "Ingresar" : "Crear cuenta";
-  document.querySelector(".toggle").textContent =
-    mode === "login"
-      ? "¿No tienes cuenta? Crear una"
-      : "¿Ya tienes cuenta? Ingresar";
+    mode==="login"?"Login SnapQR":"Registro SnapQR";
 }
 
 async function submit(){
   const email = email.value;
   const password = password.value;
-  const msg = document.getElementById("msg");
 
   const res = await fetch(`${API}/api/${mode}`,{
     method:"POST",
@@ -87,18 +69,14 @@ async function submit(){
   });
 
   const data = await res.json();
+  if(!res.ok) return msg.textContent = data.error;
 
-  if(!res.ok){
-    msg.textContent = "❌ " + data.error;
-    return;
-  }
-
-  if(mode === "login"){
+  if(mode==="login"){
     localStorage.setItem("snapqr_token", data.token);
-    location.href = "/dashboard.html";
+    location.href="/dashboard.html";
   } else {
-    msg.textContent = "✅ Usuario creado, ahora inicia sesión";
-    toggleMode();
+    msg.textContent="Usuario creado, inicia sesión";
+    toggle();
   }
 }
 </script>
