@@ -2,83 +2,276 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>SnapQR · Login</title>
+<title>SnapQR · Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
 <style>
 body{
+  margin:0;
   font-family:system-ui;
   background:#f4f6fb;
+}
+
+.app{
   display:flex;
-  justify-content:center;
-  align-items:center;
   height:100vh;
 }
+
+.sidebar{
+  width:220px;
+  background:#0f172a;
+  color:white;
+  padding:24px;
+}
+
+.sidebar h2{
+  margin-top:0;
+}
+
+.sidebar button{
+  margin-top:20px;
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:#1e293b;
+  color:white;
+  cursor:pointer;
+}
+
+.main{
+  flex:1;
+  padding:40px;
+  overflow:auto;
+}
+
 .card{
   background:white;
-  padding:32px;
-  width:360px;
   border-radius:16px;
-  box-shadow:0 20px 40px rgba(0,0,0,.1);
+  padding:24px;
+  margin-bottom:30px;
+  box-shadow:0 20px 40px rgba(0,0,0,.06);
 }
+
 input,button{
-  width:100%;
-  padding:14px;
-  margin-top:12px;
+  padding:12px;
   border-radius:10px;
   border:1px solid #ddd;
+  width:100%;
+  margin-top:10px;
 }
-button{
+
+button.primary{
   background:#0f172a;
   color:white;
   border:none;
-}
-.toggle{
-  margin-top:14px;
-  text-align:center;
   cursor:pointer;
+}
+
+.row{
+  display:flex;
+  gap:20px;
+  align-items:center;
+}
+
+canvas{
+  margin-top:20px;
+  width:220px;
+}
+
+.qr-item{
+  border-bottom:1px solid #eee;
+  padding:12px 0;
 }
 </style>
 </head>
+
 <body>
-<div class="card">
-  <h2 id="title">Login SnapQR</h2>
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Contraseña">
-  <button onclick="submit()">Ingresar</button>
-  <div class="toggle" onclick="toggle()">Crear cuenta</div>
-  <p id="msg"></p>
+<div class="app">
+
+  <aside class="sidebar">
+    <h2>SnapQR</h2>
+    <button onclick="logout()">Cerrar sesión</button>
+  </aside>
+
+  <main class="main">
+
+    <!-- CREAR QR -->
+    <section class="card">
+      <h3>Crear QR</h3>
+
+      <input id="target" placeholder="https://destino.com">
+
+      <label>Logo central</label>
+      <input type="file" id="logoInput" accept="image/*">
+
+      <label>Color QR</label>
+      <input type="color" id="qrColor" value="#000000">
+
+      <canvas id="preview"></canvas>
+
+      <div class="row">
+        <button class="primary" onclick="crearQR()">Guardar QR</button>
+        <button onclick="downloadPNG()">PNG</button>
+        <button onclick="downloadSVG()">SVG</button>
+      </div>
+
+      <div id="qr-svg" style="display:none"></div>
+    </section>
+
+    <!-- MIS QRS -->
+    <section class="card">
+      <h3>Mis QRs</h3>
+      <div id="list"></div>
+    </section>
+
+    <!-- ESTADÍSTICAS -->
+    <section class="card">
+      <h3>📊 Estadísticas</h3>
+      <p>Total escaneos: <strong id="total"></strong></p>
+      <div id="stats"></div>
+    </section>
+
+  </main>
 </div>
 
 <script>
 const API = "https://snapqr-api.enzovillarroelv.workers.dev";
-let mode = "login";
+const token = localStorage.getItem("snapqr_token");
 
-function toggle(){
-  mode = mode==="login"?"register":"login";
-  document.getElementById("title").textContent =
-    mode==="login"?"Login SnapQR":"Registro SnapQR";
+if(!token){
+  location.href="/login.html";
 }
 
-async function submit(){
-  const email = email.value;
-  const password = password.value;
+// ---------- QR LIVE ----------
+function renderQR(){
+  const canvas = document.getElementById("preview");
+  const url = target.value || "https://snapqr.app";
+  const color = qrColor.value;
 
-  const res = await fetch(`${API}/api/${mode}`,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ email, password })
+  QRCode.toCanvas(canvas, url,{
+    width:220,
+    color:{ dark:color, light:"#ffffff" }
   });
 
-  const data = await res.json();
-  if(!res.ok) return msg.textContent = data.error;
-
-  if(mode==="login"){
-    localStorage.setItem("snapqr_token", data.token);
-    location.href="/dashboard.html";
-  } else {
-    msg.textContent="Usuario creado, inicia sesión";
-    toggle();
-  }
+  QRCode.toString(url,{
+    type:"svg",
+    color:{ dark:color, light:"#ffffff" }
+  },(e,svg)=>{
+    document.getElementById("qr-svg").innerHTML = svg;
+  });
 }
+
+target.addEventListener("input",renderQR);
+qrColor.addEventListener("input",renderQR);
+
+// ---------- LOGO COLOR SUGGEST ----------
+logoInput.addEventListener("change",()=>{
+  const img = new Image();
+  img.onload = ()=>{
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img,0,0);
+    const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    let r=0,g=0,b=0,c=0;
+    for(let i=0;i<data.length;i+=4){
+      r+=data[i]; g+=data[i+1]; b+=data[i+2]; c++;
+    }
+    qrColor.value =
+      "#"+[r/c,g/c,b/c].map(x=>Math.round(x).toString(16).padStart(2,"0")).join("");
+    renderQR();
+  };
+  img.src = URL.createObjectURL(logoInput.files[0]);
+});
+
+// ---------- DOWNLOAD ----------
+function downloadPNG(){
+  const a=document.createElement("a");
+  a.download="snapqr.png";
+  a.href=preview.toDataURL();
+  a.click();
+}
+
+function downloadSVG(){
+  const svg=document.querySelector("#qr-svg svg");
+  const blob=new Blob([svg.outerHTML],{type:"image/svg+xml"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="snapqr.svg";
+  a.click();
+}
+
+// ---------- BACKEND ----------
+async function crearQR(){
+  await fetch(`${API}/api/links`,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":token
+    },
+    body:JSON.stringify({ target:target.value })
+  });
+  cargar();
+  loadStats();
+}
+
+async function cargar(){
+  const res = await fetch(`${API}/api/my-links`,{
+    headers:{ Authorization:token }
+  });
+  const data = await res.json();
+  list.innerHTML="";
+  data.forEach(q=>{
+    list.innerHTML+=`
+      <div class="qr-item">
+        <strong>${q.slug}</strong><br>
+        <input value="${q.target}"
+          onchange="editar('${q.slug}',this.value)">
+        <small>Escaneos: ${q.scans}</small>
+      </div>`;
+  });
+}
+
+async function editar(slug,target){
+  await fetch(`${API}/api/update-link`,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":token
+    },
+    body:JSON.stringify({ slug, target })
+  });
+}
+
+async function loadStats(){
+  const res = await fetch(`${API}/api/stats`,{
+    headers:{ Authorization:token }
+  });
+  const data = await res.json();
+  total.textContent=data.total;
+  stats.innerHTML="";
+  data.perQR.forEach(q=>{
+    stats.innerHTML+=`
+      <div>
+        <strong>${q.slug}</strong> — ${q.scans}
+        ${q.lastScan?`<br><small>${new Date(q.lastScan).toLocaleString()}</small>`:""}
+      </div><hr>`;
+  });
+}
+
+function logout(){
+  localStorage.removeItem("snapqr_token");
+  location.href="/login.html";
+}
+
+renderQR();
+cargar();
+loadStats();
 </script>
+
 </body>
 </html>
