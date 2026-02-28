@@ -2,121 +2,83 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>SnapQR Dashboard</title>
+<title>SnapQR · Login</title>
 <style>
 body{
   font-family:system-ui;
-  background:#f5f7fa;
-  margin:0;
-  padding:40px;
-}
-.container{
-  max-width:900px;
-  margin:auto;
+  background:#f4f6fb;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
 .card{
   background:white;
-  padding:24px;
-  border-radius:14px;
-  box-shadow:0 12px 30px rgba(0,0,0,.08);
-  margin-bottom:20px;
+  padding:32px;
+  width:360px;
+  border-radius:16px;
+  box-shadow:0 20px 40px rgba(0,0,0,.1);
 }
 input,button{
-  padding:12px;
+  width:100%;
+  padding:14px;
+  margin-top:12px;
   border-radius:10px;
   border:1px solid #ddd;
 }
 button{
-  background:#111;
+  background:#0f172a;
   color:white;
   border:none;
-  cursor:pointer;
 }
-.qr{
-  display:flex;
-  justify-content:space-between;
-  border-bottom:1px solid #eee;
-  padding:12px 0;
+.toggle{
+  margin-top:14px;
+  text-align:center;
+  cursor:pointer;
 }
 </style>
 </head>
-
 <body>
-<div class="container">
-  <h1>📊 SnapQR Dashboard</h1>
-
-  <div class="card">
-    <input id="target" placeholder="https://destino.com">
-    <button onclick="crearQR()">Crear QR</button>
-  </div>
-
-  <div class="card">
-    <h3>Mis QRs</h3>
-    <div id="list"></div>
-  </div>
+<div class="card">
+  <h2 id="title">Login SnapQR</h2>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Contraseña">
+  <button onclick="submit()">Ingresar</button>
+  <div class="toggle" onclick="toggle()">Crear cuenta</div>
+  <p id="msg"></p>
 </div>
 
 <script>
 const API = "https://snapqr-api.enzovillarroelv.workers.dev";
-const token = localStorage.getItem("snapqr_token");
+let mode = "login";
 
-if(!token){
-  location.href="/login.html";
+function toggle(){
+  mode = mode==="login"?"register":"login";
+  document.getElementById("title").textContent =
+    mode==="login"?"Login SnapQR":"Registro SnapQR";
 }
 
-async function crearQR(){
-  const target = document.getElementById("target").value;
+async function submit(){
+  const email = email.value;
+  const password = password.value;
 
-  await fetch(`${API}/api/links`,{
+  const res = await fetch(`${API}/api/${mode}`,{
     method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":token
-    },
-    body:JSON.stringify({ target })
-  });
-
-  cargar();
-}
-
-async function cargar(){
-  const res = await fetch(`${API}/api/my-links`,{
-    headers:{ "Authorization":token }
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ email, password })
   });
 
   const data = await res.json();
-  const list = document.getElementById("list");
-  list.innerHTML = "";
+  if(!res.ok) return msg.textContent = data.error;
 
-data.forEach(q=>{
-  list.innerHTML += `
-    <div class="qr">
-      <div>
-        <strong>${q.slug}</strong><br>
-        <input 
-          value="${q.target}" 
-          onchange="editar('${q.slug}', this.value)"
-          style="width:320px"
-        >
-      </div>
-      <div>
-        👁 ${q.scans}
-      </div>
-    </div>
-  `;
-});
+  if(mode==="login"){
+    localStorage.setItem("snapqr_token", data.token);
+    location.href="/dashboard.html";
+  } else {
+    msg.textContent="Usuario creado, inicia sesión";
+    toggle();
+  }
 }
-async function editar(slug, target){
-  await fetch(`${API}/api/update-link`,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":token
-    },
-    body:JSON.stringify({ slug, target })
-  });
-}
-cargar();
 </script>
 </body>
 </html>
